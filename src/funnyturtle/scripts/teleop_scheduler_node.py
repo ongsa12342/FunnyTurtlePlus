@@ -109,6 +109,8 @@ class TeleopSchedulerNode(Node):
                 with open(self.yaml_file_path, 'w') as file:
                     yaml.dump(yaml_data, file, default_flow_style=False)
 
+                self.pizza_path.clear()
+
                 # Increment the save count
                 self.save_count += 1
                 self.get_logger().info(f"Save Count: {self.save_count}")
