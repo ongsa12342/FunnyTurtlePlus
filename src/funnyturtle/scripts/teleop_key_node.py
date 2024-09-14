@@ -1,18 +1,23 @@
 #!/usr/bin/python3
 
+import curses
+
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
-import curses
 
 class TeleopKeyNode(Node):
     def __init__(self):
         super().__init__('teleop_key_node')
-        
+
+        # Parameters
         self.declare_parameter('turtle_name', "turtle")
         self.turtle_name = self.get_parameter('turtle_name').value
+
         # Publisher for /key topic (String)
         self.key_publisher = self.create_publisher(String, f'{self.turtle_name}/key', 10)
+
+        # Initialization Logs
         self.get_logger().info("TeleopKeyNode has been started.")
 
     def run(self):
@@ -28,7 +33,7 @@ class TeleopKeyNode(Node):
 
         # Create the instructions section with better formatting
         stdscr.addstr(3, 4, "Control the turtle using the following keys:", curses.A_BOLD)
-        
+
         # Control instructions with better alignment and spacing
         stdscr.addstr(5, 6, "w/s   : Move forward/backward")
         stdscr.addstr(6, 6, "a/d   : Rotate left/right")
@@ -38,14 +43,14 @@ class TeleopKeyNode(Node):
         stdscr.addstr(10, 6, "i     : Spawn pizza")
         stdscr.addstr(11, 6, "o     : Save pizza path")
         stdscr.addstr(12, 6, "p     : Clear pizza path")
-        stdscr.addstr(13, 6, "q     : Quit")
+        stdscr.addstr(14, 6, "q     : Quit")
 
         # Refresh display initially
         stdscr.refresh()
 
         while rclpy.ok():
             key = stdscr.getch()
-            
+
             if key != -1:
                 if key == ord('q'):
                     # Quit the application when 'q' is pressed
@@ -61,7 +66,6 @@ class TeleopKeyNode(Node):
     def publish_key(self, key):
         msg = String()
         msg.data = key
-
         self.key_publisher.publish(msg)
 
 def main(args=None):
