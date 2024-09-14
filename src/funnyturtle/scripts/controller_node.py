@@ -47,7 +47,7 @@ class controller_node(Node):
         # Variables
         self.has_target = False
         self.freq = 100.0
-        self.threshold = 0.1
+        self.threshold = 0.01
 
         # PID Controllers
         self.pid_linear = PIDController(

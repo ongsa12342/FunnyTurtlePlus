@@ -140,7 +140,7 @@ class TeleopSchedulerNode(Node):
                 # Increment the save count
                 self.save_count += 1
                 self.get_logger().info(f"Save Count: {self.save_count}")
-
+                self.pizza_count = 0
                 # Return to Idle after completing the Save action
                 self.state = 'Idle'
                 if self.save_count == 4:

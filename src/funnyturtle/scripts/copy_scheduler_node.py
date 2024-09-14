@@ -32,6 +32,9 @@ class copy_scheduler_node(Node):
         # Parameters
         self.declare_parameter('turtle_name', "turtle")
         self.turtle_name = self.get_parameter('turtle_name').value
+        
+        # self.declare_parameter('turtle_name_list', [])
+        # self.turtle_name_list = self.get_parameter('turtle_name_list').get_parameter_value().string_array_value
 
         # Subscribers
         self.create_subscription(Pose, f"{self.turtle_name}/pose", self.pose_callback, 10)
@@ -52,6 +55,8 @@ class copy_scheduler_node(Node):
         self.flag = True
         self.turtle_pos = np.array([0.0, 0.0])
         
+        self.archive = False
+        
         
     def pose_callback(self, msg):
         self.turtle_pos[0] = msg.x
@@ -60,8 +65,7 @@ class copy_scheduler_node(Node):
     def noti_sent(self, request: Notify.Request, response: Notify.Response):
         self.flag = request._flag_request
         self.get_logger().info(f"self flag, {self.flag}")
-        if self.flag == True:
-            self.spawn_pizza()
+        self.archive = True
         return response
     
     def timer_callback(self):
@@ -92,16 +96,20 @@ class copy_scheduler_node(Node):
                     # Publish the target to the /target topic
                     self.target_publisher.publish(target_position)
                     self.flag = False
+                    if self.archive:
+                        self.spawn_pizza(target_position)
+                        self.archive = False
                 else:
-                    self.state = 'Idle'
+                    self.state = 'Waiting'
         elif self.state == 'Waiting' :
+            
             pass
         
-    def spawn_pizza(self):
+    def spawn_pizza(self, target_position):
 
         position_request = GivePosition.Request()
-        position_request.x = self.turtle_pos[0]
-        position_request.y = self.turtle_pos[1]
+        position_request.x = target_position.x
+        position_request.y = target_position.y
         self.spawn_pizza_client.call_async(position_request)
         
     def load_pizza_paths(self):
@@ -150,12 +158,6 @@ class copy_scheduler_node(Node):
             # Log as a numpy array
         
         self.path = temp_path
-        # self.path = temp_path
-        # time.sleep(3)
-        # self.get_logger().info(f"temp_path: {temp_path}")
-        # time.sleep(3)
-        # self.get_logger().info(f"self.path: {self.path[0]}")
-        # time.sleep(100)
         
         if self.turtle_name == 'Foxy':
             for pos in self.path[0]:
@@ -169,7 +171,7 @@ class copy_scheduler_node(Node):
         elif self.turtle_name == 'Iron':
              for pos in self.path[3]:
                 self.pizza_path.append(deepcopy(pos))
-        # time.sleep(100)
+
         self.get_logger().info(f"path as numpy array: {self.pizza_path}")
 
 

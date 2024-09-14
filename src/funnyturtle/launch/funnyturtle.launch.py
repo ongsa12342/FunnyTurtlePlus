@@ -17,7 +17,8 @@ def generate_launch_description():
             {'turtlename': 'Iron', 'x': -1.0, 'y': -1.0, 'theta': 0.0},
         ]
     }
-
+    
+    turtle_name_list = ['Foxy','Noetic','Humble', 'Iron']
     for ns in namespaces:
         # Launch turtlesim_plus_node for each namespace
         turtle_sim_node = Node(
@@ -49,12 +50,17 @@ def generate_launch_description():
             Launch_description.add_action(controller_node)
 
             # Launch teleop_scheduler_node.py
+            
+            funnyturtle_parameters = [{'turtle_name': turtle["turtlename"]}]
+            # if ns == namespaces[1]:
+            #     funnyturtle_parameters.append({'turtle_name_list': turtle_name_list})
+        
             scheduler_node = Node(
                 package='funnyturtle',
                 executable=ns+'_scheduler_node.py',
                 namespace=ns,
                 name=f'{ns}_scheduler_node',
-                parameters=[{'turtle_name': turtle["turtlename"]}]
+                parameters=funnyturtle_parameters
             )
             Launch_description.add_action(scheduler_node)
 
