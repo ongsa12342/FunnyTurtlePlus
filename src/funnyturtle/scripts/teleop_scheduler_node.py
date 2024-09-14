@@ -17,7 +17,7 @@ from std_srvs.srv import Empty
 from turtlesim_plus_interfaces.srv import GivePosition
 from funnyturtleplus_interfaces.srv import Notify
 
-# from std_srvs.srv import SetBool
+from rcl_interfaces.msg import SetParametersResult
 
 class TeleopSchedulerNode(Node):
     def __init__(self):
@@ -27,10 +27,14 @@ class TeleopSchedulerNode(Node):
         self.declare_parameter('turtle_name', "turtle")
         self.turtle_name = self.get_parameter('turtle_name').value
 
+        self.declare_parameter('pizza_max', 20)
+        self.pizza_max = self.get_parameter('pizza_max').value
+
         # Flags and Counters
         self.flag = True # controller notify
         self.save_count = 0
         self.max_saves = 4  # Save only up to 4 times
+        self.pizza_count = 0
 
         # File paths
         self.yaml_file_path = 'src/funnyturtle/config/Pizzapath.yaml'
@@ -76,6 +80,21 @@ class TeleopSchedulerNode(Node):
             print(f"File {self.yaml_file_path} has been removed.")
         else:
             print(f"File {self.yaml_file_path} does not exist.")
+
+        # Parameter Update Callback
+        self.add_on_set_parameters_callback(self.set_param_callback)
+
+    def set_param_callback(self, params):
+        for param in params:
+            if param.name == 'pizza_max':
+                self.get_logger().info(f'Updated pizza_max: {param.value}')
+                self.pizza_max = param.value
+            else:
+                self.get_logger().warn(f'Unknown parameter: {param.name}')
+                return SetParametersResult(
+                    successful=False, reason=f'Unknown parameter: {param.name}'
+                )
+        return SetParametersResult(successful=True)
 
     def noti_sent(self, request: Notify.Request, response: Notify.Response):
         self.flag = request._flag_request
@@ -206,13 +225,14 @@ class TeleopSchedulerNode(Node):
                     self.target_publisher.publish(target_position)
                     self.flag = False
                 else:
+                    self.pizza_count = 0
                     self.state = 'Idle'
 
             # # Display the queue after dequeuing
             # print("Queue after dequeuing:", list(self.pizza_path))
 
         elif self.state == 'Spawn':
-            self.get_logger().info("Spawning an item...")
+            # self.get_logger().info("Spawning an item...")
             self.turtle_teleop()
             self.spawn_pizza()
 
@@ -224,14 +244,22 @@ class TeleopSchedulerNode(Node):
             # Check if any distance is smaller than 0.5
             if np.any(distances < 0.5):
                 return
-
+        
+        if self.pizza_count >= self.pizza_max:
+            self.get_logger().info(f"pizza = {self.pizza_count} then cannot spawn more")
+            return
         self.pizza_path.append(self.turtle_pos.copy())
 
         position_request = GivePosition.Request()
         position_request.x = self.turtle_pos[0]
         position_request.y = self.turtle_pos[1]
+
         self.spawn_pizza_client.call_async(position_request)
+        self.pizza_count += 1
         # self.get_logger().info(f"Pizza Path : {self.pizza_path}")
+        self.get_logger().info(f"pizza = {self.pizza_count} ")
+
+
 
 def main(args=None):
     rclpy.init(args=args)
