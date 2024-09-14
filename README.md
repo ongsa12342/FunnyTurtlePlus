@@ -12,12 +12,15 @@ git clone https://github.com/ongsa12342/FunnyTurtlePlus.git
 ```bash
 cd FunnyTurtlePlus && colcon build
 ```
-
-### Step 3: Source the Setup File
+### Step 3: Build turtlesim plus
+```bash
+source dependencies_install.bash && colcon build --packages-select turtlesim_plus turtlesim_plus_interfaces
+```
+### Step 4: Source the Setup File
 ```bash
 source ~/FunnyTurtlePlus/install/setup.bash
 ```
-### Step 4: (Optional) Add to .bashrc
+### Step 5: (Optional) Add to .bashrc
 ```bash
 echo "source ~/FunnyTurtlePlus/install/setup.bash" >> ~/.bashrc && source ~/.bashrc
 ```
