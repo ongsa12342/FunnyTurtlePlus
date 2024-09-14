@@ -67,8 +67,17 @@ class TeleopSchedulerNode(Node):
         self.client_eat = self.create_client(Empty, f'{self.turtle_name}/eat')
         
         self.save_count = 0
+        
         self.max_saves = 4  # Save only up to 4 times
         self.yaml_file_path = 'src/funnyturtle/config/Pizzapath.yaml'
+
+        if os.path.exists(self.yaml_file_path):
+            os.remove(self.yaml_file_path)
+            print(f"File {self.yaml_file_path} has been removed.")
+        else:
+            print(f"File {self.yaml_file_path} does not exist.")
+
+
     def noti_sent(self, request:Notify.Request , response:Notify.Response):
         self.flag = request._flag_request
         self.get_logger().info(f"self flag, {self.flag}")
