@@ -10,6 +10,8 @@ from turtlesim.msg import Pose
 import numpy as np
 from collections import deque
 from funnyturtleplus_interfaces.srv import Notify
+import yaml
+import os
 # from std_srvs.srv import SetBool
 
 class TeleopSchedulerNode(Node):
@@ -63,12 +65,60 @@ class TeleopSchedulerNode(Node):
         self.pizza_path = deque()
 
         self.client_eat = self.create_client(Empty, f'{self.turtle_name}/eat')
+        
+        self.save_count = 0
+        
+        self.max_saves = 4  # Save only up to 4 times
+        self.yaml_file_path = 'src/funnyturtle/config/Pizzapath.yaml'
+
+        if os.path.exists(self.yaml_file_path):
+            os.remove(self.yaml_file_path)
+            print(f"File {self.yaml_file_path} has been removed.")
+        else:
+            print(f"File {self.yaml_file_path} does not exist.")
+
 
     def noti_sent(self, request:Notify.Request , response:Notify.Response):
         self.flag = request._flag_request
         self.get_logger().info(f"self flag, {self.flag}")
         return response
     
+    def handle_save_state(self):
+        if self.state == 'Save':
+            # Increment the save count
+            if self.save_count < self.max_saves:
+                self.get_logger().info(f"Pizza Path : {self.pizza_path}")
+                
+                # Convert deque and numpy arrays to a list of lists
+                pizza_path_list = [point.tolist() for point in self.pizza_path]
+                
+                # Load existing data from the YAML file if it exists
+                if os.path.exists(self.yaml_file_path):
+                    with open(self.yaml_file_path, 'r') as file:
+                        yaml_data = yaml.safe_load(file) or {}
+                else:
+                    yaml_data = {}
+
+                # Append new pizza path to the existing list of paths
+                if 'PizzaPaths' not in yaml_data:
+                    yaml_data['PizzaPaths'] = []
+
+                yaml_data['PizzaPaths'].append(pizza_path_list)
+
+                # Save the updated data to the YAML file
+                with open(self.yaml_file_path, 'w') as file:
+                    yaml.dump(yaml_data, file, default_flow_style=False)
+
+                # Increment the save count
+                self.save_count += 1
+                self.get_logger().info(f"Save Count: {self.save_count}")
+
+                # Return to Idle after completing the Save action
+                self.state = 'Idle'
+            else:
+                self.get_logger().info("Reached maximum save count. No more saves.")
+                self.state = 'Idle'
+                
     def pose_callback(self, msg):
         self.turtle_pos[0] = msg.x
         self.turtle_pos[1] = msg.y
@@ -88,9 +138,9 @@ class TeleopSchedulerNode(Node):
         elif self.state == 'Idle' and self.current_key == 'p':
             self.state = 'Clear'
             self.get_logger().info("State changed to: Clear")
-        # elif self.current_key == 'p':
-        #     self.state = 'Spawn'
-        #     self.get_logger().info("State changed to: Spawn")
+        elif self.current_key == 'o':
+            self.state = 'Save'
+            self.get_logger().info("State changed to: Spawn")
         # else:
         #     self.state = 'Idle'
         #     self.get_logger().info("State changed to: Idle")
@@ -136,10 +186,8 @@ class TeleopSchedulerNode(Node):
             self.turtle_teleop()
             
         elif self.state == 'Save':
-            # self.get_logger().info("Saving current state...")  # You can add logic for saving state
-            pass
-            # Return to Idle after completing the Save action
-            self.state = 'Idle'
+            self.handle_save_state()
+            
         elif self.state == 'Clear':
             self.client_eat.call_async(Empty.Request())
             if self.flag == True:
@@ -187,7 +235,7 @@ class TeleopSchedulerNode(Node):
         position_request.x = self.turtle_pos[0]
         position_request.y = self.turtle_pos[1]
         self.spawn_pizza_client.call_async(position_request)
-        self.get_logger().info(f"Pizza Path : {self.pizza_path}")
+        # self.get_logger().info(f"Pizza Path : {self.pizza_path}")
 
 def main(args=None):
     rclpy.init(args=args)
