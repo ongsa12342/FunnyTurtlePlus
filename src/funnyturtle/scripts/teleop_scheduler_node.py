@@ -158,8 +158,8 @@ class TeleopSchedulerNode(Node):
         elif self.current_key == 'd':
             twist.angular.z = -self.angular_velocity  # Rotate right
         elif self.current_key == ' ':  # Space to stop
-            twist.linear.x = 0
-            twist.angular.z = 0
+            twist.linear.x = 0.0
+            twist.angular.z = 0.0
 
         # Adjust linear and angular velocities based on key input
         if self.current_key == 'h':
