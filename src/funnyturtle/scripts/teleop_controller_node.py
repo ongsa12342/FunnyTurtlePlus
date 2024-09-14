@@ -1,27 +1,30 @@
 #!/usr/bin/python3
 
-from funnyturtle.dummy_module import dummy_function, dummy_var
+import math
+
+import numpy as np
+
 import rclpy
 from rclpy.node import Node
 from rcl_interfaces.msg import SetParametersResult
+from std_srvs.srv import Empty
 from geometry_msgs.msg import Point, Twist
 from turtlesim.msg import Pose
-from funnyturtle.pid_controller import PIDController
-import numpy as np
-from funnyturtleplus_interfaces.srv import Notify
-import math
-from std_srvs.srv import Empty
 
+from funnyturtle.dummy_module import dummy_function, dummy_var
+from funnyturtle.pid_controller import PIDController
+from funnyturtleplus_interfaces.srv import Notify
 
 class teleop_controller_node(Node):
     def __init__(self):
         super().__init__('teleop_controller_node')
-        # Declare parameters with default values
+
+        # Parameters
         self.declare_parameter('Kp_linear', 8.0)
         self.declare_parameter('Ki_linear', 0.0)
         self.declare_parameter('Kd_linear', 0.0)
         self.declare_parameter('U_max_linear', 100.0)
-        
+
         self.declare_parameter('Kp_angular', 10.0)
         self.declare_parameter('Ki_angular', 0.0)
         self.declare_parameter('Kd_angular', 10.0)
@@ -30,40 +33,55 @@ class teleop_controller_node(Node):
         self.declare_parameter('turtle_name', "turtle")
         self.turtle_name = self.get_parameter('turtle_name').value
 
+        # Fetch parameters
         self.Kp_linear = self.get_parameter('Kp_linear').value
         self.Ki_linear = self.get_parameter('Ki_linear').value
         self.Kd_linear = self.get_parameter('Kd_linear').value
         self.U_max_linear = self.get_parameter('U_max_linear').value
-        
+
         self.Kp_angular = self.get_parameter('Kp_angular').value
         self.Ki_angular = self.get_parameter('Ki_angular').value
         self.Kd_angular = self.get_parameter('Kd_angular').value
         self.U_max_angular = self.get_parameter('U_max_angular').value
-        
-        
+
+        # Variables
         self.has_target = False
-        
         self.freq = 100.0
-        self.create_timer(1.0 / self.freq, self.timer_callback)
+        self.threshold = 0.1
 
+        # PID Controllers
+        self.pid_linear = PIDController(
+            self.Kp_linear, self.Ki_linear, self.Kd_linear, self.U_max_linear
+        )
+        self.pid_angular = PIDController(
+            self.Kp_angular, self.Ki_angular, self.Kd_angular, self.U_max_angular
+        )
 
-        self.create_subscription(Pose, f"{self.turtle_name}/pose", self.pose_callback, 10)
-        self.create_subscription(Point, f"{self.turtle_name}/target", self.target_callback, 10)
-        self.cmd_vel_pub = self.create_publisher(Twist, f'{self.turtle_name}/cmd_vel', 10)
+        # Positions
+        self.target_pos = np.array([0.0, 0.0])
+        self.turtle_pos = np.array([0.0, 0.0, 0.0])
 
+        # Publishers and Subscribers
+        self.cmd_vel_pub = self.create_publisher(
+            Twist, f'{self.turtle_name}/cmd_vel', 10
+        )
+        self.create_subscription(
+            Pose, f"{self.turtle_name}/pose", self.pose_callback, 10
+        )
+        self.create_subscription(
+            Point, f"{self.turtle_name}/target", self.target_callback, 10
+        )
+
+        # Clients
         self.flag_client = self.create_client(Notify, f'{self.turtle_name}/noti')
         self.eat_pizza_cli = self.create_client(Empty, f'{self.turtle_name}/eat')
 
+        # Timers
+        self.create_timer(1.0 / self.freq, self.timer_callback)
 
-        self.pid_angular = PIDController(self.Kp_angular, self.Ki_angular, self.Kd_angular, self.U_max_angular)
-        self.pid_linear = PIDController(self.Kp_linear, self.Ki_linear, self.Kd_linear, self.U_max_linear)
-        
-        self.target_pos = np.array([0.0, 0.0])
-        self.turtle_pos = np.array([0.0, 0.0, 0.0])
-        self.threshold = 0.1
-        
+        # Parameter Update Callback
         self.add_on_set_parameters_callback(self.set_param_callback)
-        
+
     def set_param_callback(self, params):
         for param in params:
             if param.name == 'Kp':
@@ -80,47 +98,49 @@ class teleop_controller_node(Node):
                 self.U_max = param.value
             else:
                 self.get_logger().warn(f'Unknown parameter: {param.name}')
-                # Return failure result for unknown parameters
-                return SetParametersResult(successful=False, reason=f'Unknown parameter: {param.name}')
-        self.pid_angular.set_param(self.Kp_angular, self.Ki_angular, self.Kd_angular, self.U_max_angular)
-        self.pid_linear.set_param(self.Kp_linear, self.Ki_linear, self.Kd_linear, self.U_max_linear)
-        # If all parameters are known, return success
+                return SetParametersResult(
+                    successful=False, reason=f'Unknown parameter: {param.name}'
+                )
+        self.pid_angular.set_param(
+            self.Kp_angular, self.Ki_angular, self.Kd_angular, self.U_max_angular
+        )
+        self.pid_linear.set_param(
+            self.Kp_linear, self.Ki_linear, self.Kd_linear, self.U_max_linear
+        )
         return SetParametersResult(successful=True)
-    
+
     def cmdvel(self, v, w):
         msg = Twist()
         msg.linear.x = v
         msg.angular.z = w
         self.cmd_vel_pub.publish(msg)
-        
+
     def eat_pizza(self):
         eat_request = Empty.Request()
         self.eat_pizza_cli.call_async(eat_request)
-        
+
     def pose_callback(self, msg):
         self.turtle_pos[0] = msg.x
         self.turtle_pos[1] = msg.y
         self.turtle_pos[2] = msg.theta
-        # self.get_logger().info(f"turtle pose, {self.turtle_pos}")
-
-        
 
     def target_callback(self, msg):
         self.target_pos[0] = msg.x
         self.target_pos[1] = msg.y
-        self.has_target = True 
-        # self.get_logger().info(f"target, {self.target_pos}")
+        self.has_target = True
 
-    
     def timer_callback(self):
         if not self.has_target:
             return
-        
+
         dt = 1.0 / self.freq  # Time step
 
         # Calculate distance and angle to the target
         distance = np.linalg.norm(self.target_pos - self.turtle_pos[:2])
-        desired_theta = math.atan2(self.target_pos[1] - self.turtle_pos[1], self.target_pos[0] - self.turtle_pos[0])
+        desired_theta = math.atan2(
+            self.target_pos[1] - self.turtle_pos[1],
+            self.target_pos[0] - self.turtle_pos[0]
+        )
         theta_error = desired_theta - self.turtle_pos[2]
 
         # Normalize the angle error to [-pi, pi]
@@ -134,16 +154,13 @@ class teleop_controller_node(Node):
             self.get_logger().info(f"data !!!, {self.data}")
             self.has_target = False
             return
-        
+
         # Get control signals from PID using compute method
         angular_control = self.pid_angular.compute(theta_error)
         linear_control = self.pid_linear.compute(distance)
 
         # Send velocity commands
         self.cmdvel(linear_control, angular_control)
-
-
-
 
 def main(args=None):
     rclpy.init(args=args)
@@ -152,5 +169,5 @@ def main(args=None):
     node.destroy_node()
     rclpy.shutdown()
 
-if __name__=='__main__':
+if __name__ == '__main__':
     main()
