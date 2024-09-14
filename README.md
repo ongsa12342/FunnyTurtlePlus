@@ -1,44 +1,66 @@
 # FunnyTurtlePlus
 
 ## Introduction 
-Welcome to the FunnyTurtle Project, a hands-on initiative developed for the FRA501 Robotics DevOps course. This project is designed to deepen your understanding of the basics of ROS2 (Robot Operating System 2) by offering practical experience in implementing key concepts such as Topics, Services, Parameters, Namespaces, and Launch Files within a complex robotic system. 
+FunnyTurtle Project, FRA501 Robotics DevOps project. This project is designed to deepen your understanding of the basics of ROS2 (Robot Operating System 2) by offering practical experience in implementing key concepts such as Topics, Services, Parameters, Namespaces, and Launch Files within a complex robotic system. 
+
+## Table of Contents
+- [Project Overview](#project-overview)
+- [System Architecture](#system-archtecture)
+- [Installation and setup](#installation-and-setup)
+- [Usage](#usage)
+- [Testing and Result](#testing-and-result)
 
 ## Project Overview
 
-The Funnyturtle project is divided into two main components:
+The Funnyturtle project is divided into three main components:
 1. Teleop Turtle
 
-The Teleop Turtle is a user-controlled robot that responds to keyboard inputs, allowing you to navigate and interact within the simulation environment. Its key functionalities include:
-
-- Movement Control: Use keyboard keys (e.g., 'w', 'a', 's', 'd') to move the turtle in different directions.
-- Pizza Spawning: Press a designated key to drop a pizza at the turtle's current location.
-- Position Saving: Save the positions of all unsaved pizzas to a .yaml file by pressing a specific key. You can save up to four sets of positions.
-- Clearing Pizzas: Remove all unsaved pizzas from the environment with a dedicated key press.
-- Dynamic Configuration: Adjust parameters such as the number of pizzas (n) that can be spawned and controller gains via rqt.
-- Namespace Support: The Teleop Turtle can be assigned a namespace for better organization and management within the ROS2 ecosystem.
+    In Turtle Teleop, the turtlesim_plus interface appears, allowing you to control the turtle's position and direction using the keys (a, s, d, w, etc.). Press 'i' to toggle the ability to spawn pizzas, 'o' to save the most recently spawned pizza to a .yaml file, and 'p' to clear the turtle's path so it can move directly to any unsaved pizza.
 
 2. Copy Turtle Fleet
 
-Once you have saved pizza positions four times, an autonomous fleet of four turtles is activated. Each turtle in the fleet has a unique role:
+    In Copy Turtle Fleet, four turtles (Foxy, Noetic, Humble, and Iron) appear within the turtlesim_plus interface. This process begins automatically once the fourth teleop turtle completes saving. The Copy Turtle Fleet collects target points from the teleop pizza target .yaml file and uses these to spawn pizzas. Once all tasks are completed, the turtles move to the lower-left corner of the interface and wait for the next task.
 
-- Turtle "Foxy":    Replicates the first set of saved pizza positions.
-- Turtle "Noetic":  Replicates the second set of saved positions.
-- Turtle "Humble":  Replicates the third set.
-- Turtle "Iron":    Replicates the fourth set.
+3.  (Optional) Bonus features 
 
-The fleet starts from the bottom-left corner and performs the following tasks:
+    After the Turtle teleop and the copy turtle fleet have been completed, all copy turtles will position themselves in the right corner. Then, spawn a turtle named "Melodic". Melodic will proceed to consume any pizzas and also eat all the copy turtles. Once there are no turtles left on the copy turtle interface, Melodic will switch to the teleop turtle interface. There, Melodic will try to eat all the pizzas and finally consume the teleop turtle. After that, the entire program will reset to its initial state.
 
-1. Pizza Replication: Each turtle moves to the saved positions and drops pizzas accordingly.
-2. Synchronization: After completing their tasks, all turtles wait until every member of the fleet is finished.
-3. Final Movement: Together, they move to the top-right corner of the simulation environment.
 
 
 ## System Archtecture
-- Topic
-- Service
-- Parameter
-- Namespace
-- Launch File
+<!-- ![alt text](<Screenshot from 2024-09-15 02-44-41.png>)
+![alt text](<Screenshot from 2024-09-15 02-43-10.png>) -->
+### Node
+- Teleop turtle node
+    - teleop_key_node :  This node receives keyboard input, processes the key press, and publishes the result to the teleop_scheduler_node, which then determines the specific task associated with the key pressed.
+
+    - teleop_scheduler_node : Subscribes to the input key from the teleop_key_node and sends commands to define the turtle's state and actions, such as spawning pizza, clearing pizza, saving pizza positions, etc. Additionally, it manages pizza positions, either sending them to the controller_node when an unsaved pizza needs to be cleared or removed, or saving the pizza path positions to a .yaml file.
+
+    - controller_node : This node uses a PID controller to minimize the distance between the turtle and the target position. Once the turtle is sufficiently close to the target, it notifies the teleop_scheduler_node that the task is complete and it is ready for the next task.
+
+    - turtlesim_plus_node : Displays all components and interactions within the turtlesim_plus interface. Additionally, it sends the turtle's position and orientation to the controller_node and teleop_scheduler_node to be used for computations and task management.
+
+- Copy turtle node
+    - copy_scheduler_node : 
+
+    - controller_node : This node uses a PID controller to minimize the distance between each turtle and the their target position. Once the turtle is sufficiently close to the target, it notifies the teleop_scheduler_node that the task is complete and it is ready for the next task.
+
+    - turtlesim_plus_node
+
+### Topic
+- /cmd_vel : For command linear and angular velocity
+- /target : Collect target position [x,y,z]
+- /key : Collect button press from keyboard
+- /pose : Position and Orientation of turtle
+
+### Service
+- /eat : For remove entity that are in area of scanner
+- /spawn_pizza : For spawn pizza at specific position
+- /notify : To acknowledge task done
+
+### Parameter (Able to change with rqt interface)
+- Controller Gain (Kp, Ki, Kd) :  Linear and angular controller gain
+- Pizza_max : Maximum number of pizza that can spawn  
 
 ## Installation and Setup
 
@@ -66,33 +88,23 @@ echo "source ~/FunnyTurtlePlus/install/setup.bash" >> ~/.bashrc && source ~/.bas
 ```
 
 ## Usage
+### Run seperately node
 
 ```bash
 ros2 run funnyturtle {Node_name}
 ```
-Run specific node 
 
+### Launch teleop turtle only
 ```bash
 ros2 launch funnyturtle teleop.launch.py
 ```
-Launch all teleop turtle node (teleop_key_node, teleop_scheduler_node, controller_node) 
 
+### Launch teleop and copy tutles together
 ```bash
 ros2 launch funnyturtle funnyturtle.launch.py
 ```
-Launch turtle teleop and copy turtle together 
 
 
-## Features and Functionality
-- Turtle teleop 
-
-    In Turtle Teleop, the turtlesim_plus interface appears, allowing you to control the turtle's position and direction using the keys (a, s, d, w, etc.). Press 'i' to toggle the ability to spawn pizzas, 'o' to save the most recently spawned pizza to a .yaml file, and 'p' to clear the turtle's path so it can move directly to any unsaved pizza.
-
-- Copy turtle fleet
-
-    In Copy Turtle Fleet, four turtles (Foxy, Noetic, Humble, and Iron) appear within the turtlesim_plus interface. This process begins automatically once the fourth teleop turtle completes saving. The Copy Turtle Fleet collects target points from the teleop pizza target .yaml file and uses these to spawn pizzas. Once all tasks are completed, the turtles move to the lower-left corner of the interface and wait for the next task.
-
-
-
-- Bonus features
 ## Testing and Result
+
+### Create "FIBO" by teleop turtle and automatic generate by a fleet of copy turtle
