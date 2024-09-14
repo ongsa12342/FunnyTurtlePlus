@@ -1,0 +1,3 @@
+bool flag_request     # Initial flag (0 = task not started, 1 = task completed)
+---
+bool flag_response     # Updated flag (0 = task in progress, 1 = task completed)
