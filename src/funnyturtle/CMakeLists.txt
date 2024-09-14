@@ -29,6 +29,8 @@ ament_python_install_package(${PROJECT_NAME})
 install(PROGRAMS
   scripts/dummy_script.py
   scripts/teleop_controller_node.py
+  scripts/teleop_key_node.py
+  scripts/teleop_scheduler_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
