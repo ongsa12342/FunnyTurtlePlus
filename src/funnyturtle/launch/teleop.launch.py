@@ -12,7 +12,6 @@ def generate_launch_description():
             executable='turtlesim_plus_node.py',
             namespace=namespace,
             name='turtlesim_plus_node',
-            parameters=[{'turtle_name': turtlename}]
         ),
         
         # Launch teleop_controller_node.py
@@ -35,17 +34,17 @@ def generate_launch_description():
         
         ExecuteProcess(
             cmd=['gnome-terminal', '--', 'ros2', 'run', 'funnyturtle', 'teleop_key_node.py',
-                 '--ros-args', '--remap', '__ns:=/teleop', '-p', 'turtle_name:=turtle_teleop'],
+                 '--ros-args', '--remap', f'__ns:=/{namespace}', '-p', 'turtle_name:=turtle_teleop'],
             output='screen'
         ),
 
         ExecuteProcess(
-            cmd=["ros2 service call /teleop/remove_turtle turtlesim/srv/Kill \"name: 'turtle1'\""],
+            cmd=["ros2 service call", f"/{namespace}/remove_turtle turtlesim/srv/Kill \"name: 'turtle1'\""],
             shell=True
         ),
 
         ExecuteProcess(
-                cmd=[f"ros2 service call /teleop/spawn_turtle turtlesim/srv/Spawn \"{{x: -1.0, y: -1.0, theta: 0.0, name: {turtlename}}}\""],
+                cmd=[f"ros2 service call", f"/{namespace}/spawn_turtle turtlesim/srv/Spawn \"{{x: -1.0, y: -1.0, theta: 0.0, name: {turtlename}}}\""],
                 shell=True
             ),
     ])
