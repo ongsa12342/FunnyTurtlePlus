@@ -60,7 +60,6 @@ class TeleopSchedulerNode(Node):
         # Timer to regularly check the state and act
         self.timer = self.create_timer(0.01, self.timer_callback)  
         self.turtle_pos = np.array([0.0,0.0])
-        self.last_pizza_pos = np.array([0.0, 0.0])
 
         self.pizza_path = deque()
 
@@ -220,16 +219,14 @@ class TeleopSchedulerNode(Node):
             self.spawn_pizza()
 
     def spawn_pizza(self):
-        # Check if the last pizza position is set
-        if self.last_pizza_pos[0] is not None and self.last_pizza_pos[1] is not None:
-            distance_moved = np.linalg.norm(self.turtle_pos[:2] - self.last_pizza_pos)
-
-            # Spawn a pizza only if the distance moved is greater than or equal to 0.5
-            if distance_moved < 0.5:
+        
+        if self.pizza_path:
+            pizza_positions = np.array(self.pizza_path)  # Convert deque to numpy array
+            distances = np.linalg.norm(pizza_positions - self.turtle_pos[:2], axis=1)
+            
+            # Check if any distance is smaller than 0.5
+            if np.any(distances < 0.5):
                 return
-
-        # Set the current position as the new pizza spawn position
-        self.last_pizza_pos = self.turtle_pos[:2].copy()
 
         self.pizza_path.append(self.turtle_pos.copy())
 
