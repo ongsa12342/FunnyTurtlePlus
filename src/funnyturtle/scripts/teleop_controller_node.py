@@ -27,6 +27,9 @@ class teleop_controller_node(Node):
         self.declare_parameter('Kd_angular', 10.0)
         self.declare_parameter('U_max_angular', 100.0)
 
+        self.declare_parameter('turtle_name', "turtle")
+        self.turtle_name = self.get_parameter('turtle_name').value
+
         self.Kp_linear = self.get_parameter('Kp_linear').value
         self.Ki_linear = self.get_parameter('Ki_linear').value
         self.Kd_linear = self.get_parameter('Kd_linear').value
@@ -44,12 +47,12 @@ class teleop_controller_node(Node):
         self.create_timer(1.0 / self.freq, self.timer_callback)
 
 
-        self.create_subscription(Pose, "/turtle1/pose", self.pose_callback, 10)
-        self.create_subscription(Point, "target", self.target_callback, 10)
-        self.cmd_vel_pub = self.create_publisher(Twist, '/turtle1/cmd_vel', 10)
+        self.create_subscription(Pose, f"{self.turtle_name}/pose", self.pose_callback, 10)
+        self.create_subscription(Point, f"{self.turtle_name}/target", self.target_callback, 10)
+        self.cmd_vel_pub = self.create_publisher(Twist, f'{self.turtle_name}/cmd_vel', 10)
 
-        self.flag_client = self.create_client(Notify, 'noti')
-        self.eat_pizza_cli = self.create_client(Empty, 'eat')
+        self.flag_client = self.create_client(Notify, f'{self.turtle_name}/noti')
+        self.eat_pizza_cli = self.create_client(Empty, f'{self.turtle_name}/eat')
 
 
         self.pid_angular = PIDController(self.Kp_angular, self.Ki_angular, self.Kd_angular, self.U_max_angular)

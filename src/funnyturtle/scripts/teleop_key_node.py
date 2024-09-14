@@ -8,9 +8,11 @@ import curses
 class TeleopKeyNode(Node):
     def __init__(self):
         super().__init__('teleop_key_node')
-
+        
+        self.declare_parameter('turtle_name', "turtle")
+        self.turtle_name = self.get_parameter('turtle_name').value
         # Publisher for /key topic (String)
-        self.key_publisher = self.create_publisher(String, '/key', 10)
+        self.key_publisher = self.create_publisher(String, f'{self.turtle_name}/key', 10)
         self.get_logger().info("TeleopKeyNode has been started.")
 
     def run(self):

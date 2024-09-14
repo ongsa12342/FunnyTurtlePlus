@@ -15,28 +15,22 @@ from funnyturtleplus_interfaces.srv import Notify
 class TeleopSchedulerNode(Node):
     def __init__(self):
         super().__init__('teleop_scheduler_node')
-
-        self.task_service = self.create_service(Notify, 'noti', self.noti_sent)
+        self.declare_parameter('turtle_name', "turtle")
+        self.turtle_name = self.get_parameter('turtle_name').value
+        self.task_service = self.create_service(Notify, f'{self.turtle_name}/noti', self.noti_sent)
         self.flag = True
-
-        # Subscriber for /key topic (char)
-        self.create_subscription(
-            String,
-            '/key',
-            self.key_callback,
-            10
-        )
+        self.create_subscription(String, f'{self.turtle_name}/key', self.key_callback,  10)
 
         self.create_subscription(
             Pose, 
-            "/turtle1/pose", 
+            f"{self.turtle_name}/pose", 
             self.pose_callback, 
             10
         )
 
         # Publisher for /target (Point) and /cmd_vel (Twist)
-        self.target_publisher = self.create_publisher(Point, 'target', 10)
-        self.cmd_vel_publisher = self.create_publisher(Twist, 'turtle1/cmd_vel', 10)
+        self.target_publisher = self.create_publisher(Point, f'{self.turtle_name}/target', 10)
+        self.cmd_vel_publisher = self.create_publisher(Twist, f'{self.turtle_name}/cmd_vel', 10)
 
 
         # Service for /spawn_pizza (GivePosition)
@@ -68,7 +62,7 @@ class TeleopSchedulerNode(Node):
 
         self.pizza_path = deque()
 
-        self.client_eat = self.create_client(Empty, '/turtle1/eat')
+        self.client_eat = self.create_client(Empty, f'{self.turtle_name}/eat')
 
     def noti_sent(self, request:Notify.Request , response:Notify.Response):
         self.flag = request._flag_request
@@ -171,7 +165,7 @@ class TeleopSchedulerNode(Node):
             # Return to Idle after completing the Clear action
             # self.state = 'Idle'
         elif self.state == 'Spawn':
-            # self.get_logger().info("Spawning an item...")  # Add logic to spawn
+            self.get_logger().info("Spawning an item...")  # Add logic to spawn
             self.turtle_teleop()
             self.spawn_pizza()
 
