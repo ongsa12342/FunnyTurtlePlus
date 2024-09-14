@@ -1,96 +1,95 @@
 #!/usr/bin/python3
 
+import os
+from collections import deque
+
+import numpy as np
+import yaml
+
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import Point, Twist
-from turtlesim_plus_interfaces.srv import GivePosition
-from std_srvs.srv import Empty
+
 from std_msgs.msg import String
+from geometry_msgs.msg import Point, Twist
 from turtlesim.msg import Pose
-import numpy as np
-from collections import deque
+from std_srvs.srv import Empty
+
+from turtlesim_plus_interfaces.srv import GivePosition
 from funnyturtleplus_interfaces.srv import Notify
-import yaml
-import os
+
 # from std_srvs.srv import SetBool
 
 class TeleopSchedulerNode(Node):
     def __init__(self):
         super().__init__('teleop_scheduler_node')
+
+        # Parameters
         self.declare_parameter('turtle_name', "turtle")
         self.turtle_name = self.get_parameter('turtle_name').value
-        self.task_service = self.create_service(Notify, f'{self.turtle_name}/noti', self.noti_sent)
-        self.flag = True
-        self.create_subscription(String, f'{self.turtle_name}/key', self.key_callback,  10)
 
-        self.create_subscription(
-            Pose, 
-            f"{self.turtle_name}/pose", 
-            self.pose_callback, 
-            10
-        )
+        # Flags and Counters
+        self.flag = True # controller notify
+        self.save_count = 0
+        self.max_saves = 4  # Save only up to 4 times
 
-        # Publisher for /target (Point) and /cmd_vel (Twist)
-        self.target_publisher = self.create_publisher(Point, f'{self.turtle_name}/target', 10)
-        self.cmd_vel_publisher = self.create_publisher(Twist, f'{self.turtle_name}/cmd_vel', 10)
-
-
-        # Service for /spawn_pizza (GivePosition)
-        self.spawn_pizza_client = self.create_client(GivePosition, 'spawn_pizza')
-
-
-        self.time_tolerance = rclpy.duration.Duration(seconds=0.05)
-
-        self.linear_velocity = 10.0
-        self.angular_velocity = 10.0
-
-        # # Service for /notify (SetBool)
-        # self.notify_service = self.create_service(
-        #     SetBool,  # Use the correct service type
-        #     '/notify',
-        #     self.notify_callback
-        # )
+        # File paths
+        self.yaml_file_path = 'src/funnyturtle/config/Pizzapath.yaml'
 
         # State machine states
         self.state = 'Idle'  # Possible states: 'Idle', 'Save', 'Clear', 'Spawn'
         self.current_key = ''
         self.last_key_time = self.get_clock().now()
-        self.get_logger().info("TeleopSchedulerNode has been started.")
+        self.time_tolerance = rclpy.duration.Duration(seconds=0.05)
 
-        # Timer to regularly check the state and act
-        self.timer = self.create_timer(0.01, self.timer_callback)  
-        self.turtle_pos = np.array([0.0,0.0])
+        # Velocities
+        self.linear_velocity = 10.0
+        self.angular_velocity = 10.0
 
+        # Positions and Paths
+        self.turtle_pos = np.array([0.0, 0.0])
         self.pizza_path = deque()
 
-        self.client_eat = self.create_client(Empty, f'{self.turtle_name}/eat')
-        
-        self.save_count = 0
-        
-        self.max_saves = 4  # Save only up to 4 times
-        self.yaml_file_path = 'src/funnyturtle/config/Pizzapath.yaml'
+        # Subscribers
+        self.create_subscription(String, f'{self.turtle_name}/key', self.key_callback, 10)
+        self.create_subscription(Pose, f"{self.turtle_name}/pose", self.pose_callback, 10)
 
+        # Publishers
+        self.target_publisher = self.create_publisher(Point, f'{self.turtle_name}/target', 10)
+        self.cmd_vel_publisher = self.create_publisher(Twist, f'{self.turtle_name}/cmd_vel', 10)
+
+        # Service Clients
+        self.spawn_pizza_client = self.create_client(GivePosition, 'spawn_pizza')
+        self.client_eat = self.create_client(Empty, f'{self.turtle_name}/eat')
+
+        # Service Servers
+        self.task_service = self.create_service(Notify, f'{self.turtle_name}/noti', self.noti_sent)
+
+        # Timers
+        self.timer = self.create_timer(0.01, self.timer_callback)
+
+        # Initialization Logs
+        self.get_logger().info("TeleopSchedulerNode has been started.")
+
+        # Remove existing YAML file if it exists
         if os.path.exists(self.yaml_file_path):
             os.remove(self.yaml_file_path)
             print(f"File {self.yaml_file_path} has been removed.")
         else:
             print(f"File {self.yaml_file_path} does not exist.")
 
-
-    def noti_sent(self, request:Notify.Request , response:Notify.Response):
+    def noti_sent(self, request: Notify.Request, response: Notify.Response):
         self.flag = request._flag_request
         self.get_logger().info(f"self flag, {self.flag}")
         return response
-    
+
     def handle_save_state(self):
         if self.state == 'Save':
-            # Increment the save count
             if self.save_count < self.max_saves:
                 self.get_logger().info(f"Pizza Path : {self.pizza_path}")
-                
+
                 # Convert deque and numpy arrays to a list of lists
                 pizza_path_list = [point.tolist() for point in self.pizza_path]
-                
+
                 # Load existing data from the YAML file if it exists
                 if os.path.exists(self.yaml_file_path):
                     with open(self.yaml_file_path, 'r') as file:
@@ -119,7 +118,7 @@ class TeleopSchedulerNode(Node):
             else:
                 self.get_logger().info("Reached maximum save count. No more saves.")
                 self.state = 'Idle'
-                
+
     def pose_callback(self, msg):
         self.turtle_pos[0] = msg.x
         self.turtle_pos[1] = msg.y
@@ -128,7 +127,7 @@ class TeleopSchedulerNode(Node):
         self.current_key = msg.data
         self.last_key_time = self.get_clock().now()
         self.get_logger().info(f"Received key: {self.current_key}")
-        
+
         # Logic to change state based on key input
         if self.state == 'Idle' and self.current_key == 'i':
             self.state = 'Spawn'
@@ -148,6 +147,8 @@ class TeleopSchedulerNode(Node):
 
     def turtle_teleop(self):
         twist = Twist()
+
+        # Movement commands
         if self.current_key == 'w':
             twist.linear.x = self.linear_velocity  # Move forward
         elif self.current_key == 's':
@@ -160,17 +161,17 @@ class TeleopSchedulerNode(Node):
             twist.linear.x = 0.0
             twist.angular.z = 0.0
 
-        # Adjust linear and angular velocities based on key input
+        # Adjust velocities
         if self.current_key == 'h':
             self.linear_velocity += 0.1  # Increase linear velocity
         elif self.current_key == 'n':
-            self.linear_velocity = max(0.0, self.linear_velocity - 0.1)  # Decrease linear velocity, but not below 0
+            self.linear_velocity = max(0.0, self.linear_velocity - 0.1)  # Decrease linear velocity
         elif self.current_key == 'j':
             self.angular_velocity += 0.1  # Increase angular velocity
         elif self.current_key == 'm':
-            self.angular_velocity = max(0.0, self.angular_velocity - 0.1)  # Decrease angular velocity, but not below 0
+            self.angular_velocity = max(0.0, self.angular_velocity - 0.1)  # Decrease angular velocity
 
-        
+        # Reset twist if key timeout
         if (self.get_clock().now() - self.last_key_time) > self.time_tolerance:
             twist = Twist()
             twist.linear.x = 0.0
@@ -183,47 +184,43 @@ class TeleopSchedulerNode(Node):
         # Perform actions based on the current state
         if self.state == 'Idle':
             # self.get_logger().info("State is Idle. Waiting for input...")
-            # Create and publish Twist messages based on the key pressed
             self.turtle_teleop()
-            
+
         elif self.state == 'Save':
             self.handle_save_state()
-            
+
         elif self.state == 'Clear':
             self.client_eat.call_async(Empty.Request())
             if self.flag == True:
                 if len(self.pizza_path) > 0:
-                    target = self.pizza_path.popleft() 
+                    target = self.pizza_path.popleft()
                     print("Dequeued:", target)
 
                     # Create a Point message to represent the turtle's current position (for pizza)
                     target_position = Point()
                     target_position.x = target[0]
                     target_position.y = target[1]
-                    target_position.z = 0.0  
-                    
-                    # Publish the target (turtle's current position) to the /target topic
+                    target_position.z = 0.0
+
+                    # Publish the target to the /target topic
                     self.target_publisher.publish(target_position)
                     self.flag = False
                 else:
                     self.state = 'Idle'
-            
+
             # # Display the queue after dequeuing
             # print("Queue after dequeuing:", list(self.pizza_path))
-            
-            # Return to Idle after completing the Clear action
-            # self.state = 'Idle'
+
         elif self.state == 'Spawn':
-            self.get_logger().info("Spawning an item...")  # Add logic to spawn
+            self.get_logger().info("Spawning an item...")
             self.turtle_teleop()
             self.spawn_pizza()
 
     def spawn_pizza(self):
-        
         if self.pizza_path:
             pizza_positions = np.array(self.pizza_path)  # Convert deque to numpy array
             distances = np.linalg.norm(pizza_positions - self.turtle_pos[:2], axis=1)
-            
+
             # Check if any distance is smaller than 0.5
             if np.any(distances < 0.5):
                 return
