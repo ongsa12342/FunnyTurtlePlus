@@ -151,7 +151,7 @@ class controller_node(Node):
             self.data = Notify.Request()
             self.data.flag_request = True
             self.flag_client.call_async(self.data)
-            self.get_logger().info(f"data !!!, {self.data}")
+            # self.get_logger().info(f"data !!!, {self.data}")
             self.has_target = False
             return
 

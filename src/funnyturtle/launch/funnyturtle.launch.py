@@ -80,4 +80,16 @@ def generate_launch_description():
     )
     Launch_description.add_action(teleop_key_node)
 
+
+    scheduler_node = Node(
+                package='funnyturtle',
+                executable='copy_main_scheduler_node.py',
+                namespace=namespaces[1],
+                name=f'{namespaces[1]}_scheduler_node',
+                parameters=[
+                {'turtle_name_list': turtle_name_list}
+            ]
+            )
+    Launch_description.add_action(scheduler_node)
+    
     return Launch_description

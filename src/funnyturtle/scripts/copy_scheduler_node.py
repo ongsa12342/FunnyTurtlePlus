@@ -47,6 +47,13 @@ class copy_scheduler_node(Node):
         
         # Service Clients
         self.spawn_pizza_client = self.create_client(GivePosition, 'spawn_pizza')
+                 # Create a client for the service provided by the turtle
+        self.client = self.create_client(Notify, f'{self.turtle_name}/waiting')
+        
+        # Wait for the service to become available
+        while not self.client.wait_for_service(timeout_sec=10.0):
+            self.get_logger().info(f'Waiting for service {self.turtle_name}/waiting...')
+
 
         # Service Servers
         self.task_service = self.create_service(Notify, f'{self.turtle_name}/noti', self.noti_sent)
@@ -56,7 +63,29 @@ class copy_scheduler_node(Node):
         self.turtle_pos = np.array([0.0, 0.0])
         
         self.archive = False
+    def send_request(self, flag_value):
+        # Initialize the request object for the Notify service
+        self.request = Notify.Request()
         
+        # Set the flag_request value and send the request
+        self.request.flag_request = flag_value
+        self.future = self.client.call_async(self.request)
+
+        self.future.add_done_callback(self.handle_service_response)
+
+
+    def handle_service_response(self, future):
+        try:
+            response = future.result()
+            self.get_logger().info(f"Service response received: {response.flag_response}")
+            if response.flag_response:
+                self.state = 'Finish'
+            else:
+                self.get_logger().info("Waiting for more responses.")
+        except Exception as e:
+            self.get_logger().error(f"Service call failed: {e}")
+
+
         
     def pose_callback(self, msg):
         self.turtle_pos[0] = msg.x
@@ -64,7 +93,7 @@ class copy_scheduler_node(Node):
         
     def noti_sent(self, request: Notify.Request, response: Notify.Response):
         self.flag = request._flag_request
-        self.get_logger().info(f"self flag, {self.flag}")
+        # self.get_logger().info(f"self flag, {self.flag}")
         self.archive = True
         return response
     
@@ -102,8 +131,19 @@ class copy_scheduler_node(Node):
                 else:
                     self.state = 'Waiting'
         elif self.state == 'Waiting' :
-            
-            pass
+            self.send_request(True)
+        elif self.state == 'Finish':
+            self.get_logger().info(f"{self.turtle_name} Finish")
+            # Create a Point message to represent the turtle's current position (for pizza)
+            target_position = Point()
+            target_position.x = 11.0
+            target_position.y = 11.0
+            target_position.z = 0.0
+
+            # Publish the target to the /target topic
+            self.target_publisher.publish(target_position)
+            self.state = ""
+
         
     def spawn_pizza(self, target_position):
 
