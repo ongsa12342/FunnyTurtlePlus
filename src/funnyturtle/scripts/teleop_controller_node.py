@@ -45,7 +45,7 @@ class teleop_controller_node(Node):
 
 
         self.create_subscription(Pose, "/turtle1/pose", self.pose_callback, 10)
-        self.create_subscription(Point, "target_position", self.target_callback, 10)
+        self.create_subscription(Point, "target", self.target_callback, 10)
         self.cmd_vel_pub = self.create_publisher(Twist, '/turtle1/cmd_vel', 10)
 
         self.flag_client = self.create_client(Notify, 'noti')
@@ -120,7 +120,7 @@ class teleop_controller_node(Node):
         theta_error = math.atan2(math.sin(theta_error), math.cos(theta_error))
 
         if distance < self.threshold:
-            # self.cmdvel(0.0, 0.0)  # Stop the turtle
+            self.cmdvel(0.0, 0.0)  # Stop the turtle
             self.data = Notify.Request()
             self.data.flag_request = True
             self.flag_client.call_async(self.data)

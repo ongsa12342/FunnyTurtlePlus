@@ -8,12 +8,16 @@ from std_srvs.srv import Empty
 from std_msgs.msg import String
 from turtlesim.msg import Pose
 import numpy as np
-        
+from collections import deque
+from funnyturtleplus_interfaces.srv import Notify
 # from std_srvs.srv import SetBool
 
 class TeleopSchedulerNode(Node):
     def __init__(self):
         super().__init__('teleop_scheduler_node')
+
+        self.task_service = self.create_service(Notify, 'noti', self.noti_sent)
+        self.flag = True
 
         # Subscriber for /key topic (char)
         self.create_subscription(
@@ -31,7 +35,7 @@ class TeleopSchedulerNode(Node):
         )
 
         # Publisher for /target (Point) and /cmd_vel (Twist)
-        self.target_publisher = self.create_publisher(Point, '/target', 10)
+        self.target_publisher = self.create_publisher(Point, 'target', 10)
         self.cmd_vel_publisher = self.create_publisher(Twist, 'turtle1/cmd_vel', 10)
 
 
@@ -59,13 +63,21 @@ class TeleopSchedulerNode(Node):
 
         # Timer to regularly check the state and act
         self.timer = self.create_timer(0.01, self.timer_callback)  
-        self.turtle_pos = np.array([0.0,0.0,0.0])
+        self.turtle_pos = np.array([0.0,0.0])
         self.last_pizza_pos = np.array([0.0, 0.0])
 
+        self.pizza_path = deque()
+
+        self.client_eat = self.create_client(Empty, '/turtle1/eat')
+
+    def noti_sent(self, request:Notify.Request , response:Notify.Response):
+        self.flag = request._flag_request
+        self.get_logger().info(f"self flag, {self.flag}")
+        return response
+    
     def pose_callback(self, msg):
         self.turtle_pos[0] = msg.x
         self.turtle_pos[1] = msg.y
-        self.turtle_pos[2] = msg.theta
 
     def key_callback(self, msg):
         self.current_key = msg.data
@@ -79,9 +91,9 @@ class TeleopSchedulerNode(Node):
         elif self.state == 'Spawn' and self.current_key == 'i':
             self.state = 'Idle'
             self.get_logger().info("State changed to: Spawn")
-        # elif self.current_key == 'c':
-        #     self.state = 'Clear'
-        #     self.get_logger().info("State changed to: Clear")
+        elif self.state == 'Idle' and self.current_key == 'p':
+            self.state = 'Clear'
+            self.get_logger().info("State changed to: Clear")
         # elif self.current_key == 'p':
         #     self.state = 'Spawn'
         #     self.get_logger().info("State changed to: Spawn")
@@ -135,19 +147,30 @@ class TeleopSchedulerNode(Node):
             # Return to Idle after completing the Save action
             self.state = 'Idle'
         elif self.state == 'Clear':
-            # self.get_logger().info("Clearing the saved state...")  # Add logic to clear
-            pass
+            self.client_eat.call_async(Empty.Request())
+            if self.flag == True:
+                target = self.pizza_path.popleft() 
+                print("Dequeued:", target)
+
+                # Create a Point message to represent the turtle's current position (for pizza)
+                target_position = Point()
+                target_position.x = target[0]
+                target_position.y = target[1]
+                target_position.z = 0.0  
+                
+                # Publish the target (turtle's current position) to the /target topic
+                self.target_publisher.publish(target_position)
+                self.flag = False
+            
+            # # Display the queue after dequeuing
+            # print("Queue after dequeuing:", list(self.pizza_path))
+            
             # Return to Idle after completing the Clear action
-            self.state = 'Idle'
+            # self.state = 'Idle'
         elif self.state == 'Spawn':
             # self.get_logger().info("Spawning an item...")  # Add logic to spawn
             self.turtle_teleop()
             self.spawn_pizza()
-
-
-    def eat_callback(self, request, response):
-        self.get_logger().info("Eating pizza")
-        return Empty.Response()
 
     def notify_callback(self, request, response):
         self.get_logger().info(f"Notify request: {request.data}")
@@ -165,10 +188,13 @@ class TeleopSchedulerNode(Node):
         # Set the current position as the new pizza spawn position
         self.last_pizza_pos = self.turtle_pos[:2].copy()
 
+        self.pizza_path.append(self.turtle_pos.copy())
+
         position_request = GivePosition.Request()
         position_request.x = self.turtle_pos[0]
         position_request.y = self.turtle_pos[1]
         self.spawn_pizza_client.call_async(position_request)
+        self.get_logger().info(f"Pizza Path : {self.pizza_path}")
 
 def main(args=None):
     rclpy.init(args=args)
