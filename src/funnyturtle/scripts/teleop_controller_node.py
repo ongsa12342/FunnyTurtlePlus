@@ -17,14 +17,14 @@ class teleop_controller_node(Node):
     def __init__(self):
         super().__init__('teleop_controller_node')
         # Declare parameters with default values
-        self.declare_parameter('Kp_linear', 0.5)
+        self.declare_parameter('Kp_linear', 8.0)
         self.declare_parameter('Ki_linear', 0.0)
         self.declare_parameter('Kd_linear', 0.0)
         self.declare_parameter('U_max_linear', 100.0)
         
-        self.declare_parameter('Kp_angular', 0.5)
+        self.declare_parameter('Kp_angular', 10.0)
         self.declare_parameter('Ki_angular', 0.0)
-        self.declare_parameter('Kd_angular', 0.0)
+        self.declare_parameter('Kd_angular', 10.0)
         self.declare_parameter('U_max_angular', 100.0)
 
         self.Kp_linear = self.get_parameter('Kp_linear').value
@@ -38,7 +38,7 @@ class teleop_controller_node(Node):
         self.U_max_angular = self.get_parameter('U_max_angular').value
         
         
-        
+        self.has_target = False
         
         self.freq = 100.0
         self.create_timer(1.0 / self.freq, self.timer_callback)
@@ -105,10 +105,14 @@ class teleop_controller_node(Node):
     def target_callback(self, msg):
         self.target_pos[0] = msg.x
         self.target_pos[1] = msg.y
+        self.has_target = True 
         # self.get_logger().info(f"target, {self.target_pos}")
 
     
     def timer_callback(self):
+        if not self.has_target:
+            return
+        
         dt = 1.0 / self.freq  # Time step
 
         # Calculate distance and angle to the target
@@ -125,6 +129,7 @@ class teleop_controller_node(Node):
             self.data.flag_request = True
             self.flag_client.call_async(self.data)
             self.get_logger().info(f"data !!!, {self.data}")
+            self.has_target = False
             return
         
         # Get control signals from PID using compute method

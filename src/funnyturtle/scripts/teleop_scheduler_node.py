@@ -149,18 +149,21 @@ class TeleopSchedulerNode(Node):
         elif self.state == 'Clear':
             self.client_eat.call_async(Empty.Request())
             if self.flag == True:
-                target = self.pizza_path.popleft() 
-                print("Dequeued:", target)
+                if len(self.pizza_path) > 0:
+                    target = self.pizza_path.popleft() 
+                    print("Dequeued:", target)
 
-                # Create a Point message to represent the turtle's current position (for pizza)
-                target_position = Point()
-                target_position.x = target[0]
-                target_position.y = target[1]
-                target_position.z = 0.0  
-                
-                # Publish the target (turtle's current position) to the /target topic
-                self.target_publisher.publish(target_position)
-                self.flag = False
+                    # Create a Point message to represent the turtle's current position (for pizza)
+                    target_position = Point()
+                    target_position.x = target[0]
+                    target_position.y = target[1]
+                    target_position.z = 0.0  
+                    
+                    # Publish the target (turtle's current position) to the /target topic
+                    self.target_publisher.publish(target_position)
+                    self.flag = False
+                else:
+                    self.state = 'Idle'
             
             # # Display the queue after dequeuing
             # print("Queue after dequeuing:", list(self.pizza_path))
@@ -172,10 +175,6 @@ class TeleopSchedulerNode(Node):
             self.turtle_teleop()
             self.spawn_pizza()
 
-    def notify_callback(self, request, response):
-        self.get_logger().info(f"Notify request: {request.data}")
-        response.data = True
-        return response
     def spawn_pizza(self):
         # Check if the last pizza position is set
         if self.last_pizza_pos[0] is not None and self.last_pizza_pos[1] is not None:
