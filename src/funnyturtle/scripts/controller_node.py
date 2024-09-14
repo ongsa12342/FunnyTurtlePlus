@@ -15,9 +15,9 @@ from funnyturtle.dummy_module import dummy_function, dummy_var
 from funnyturtle.pid_controller import PIDController
 from funnyturtleplus_interfaces.srv import Notify
 
-class teleop_controller_node(Node):
+class controller_node(Node):
     def __init__(self):
-        super().__init__('teleop_controller_node')
+        super().__init__('controller_node')
 
         # Parameters
         self.declare_parameter('Kp_linear', 8.0)
@@ -164,7 +164,7 @@ class teleop_controller_node(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = teleop_controller_node()
+    node = controller_node()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()

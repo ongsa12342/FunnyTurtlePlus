@@ -1,7 +1,6 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.actions import ExecuteProcess
-
 def generate_launch_description():
     Launch_description = LaunchDescription()
 
@@ -42,9 +41,9 @@ def generate_launch_description():
             # Launch teleop_controller_node.py
             controller_node = Node(
                 package='funnyturtle',
-                executable='teleop_controller_node.py',
+                executable='controller_node.py',
                 namespace=ns,
-                name='teleop_controller_node',
+                name='controller_node',
                 parameters=[{'turtle_name': turtle["turtlename"]}]
             )
             Launch_description.add_action(controller_node)
@@ -54,14 +53,14 @@ def generate_launch_description():
                 package='funnyturtle',
                 executable=ns+'_scheduler_node.py',
                 namespace=ns,
-                name='teleop_scheduler_node',
+                name=f'{ns}_scheduler_node',
                 parameters=[{'turtle_name': turtle["turtlename"]}]
             )
             Launch_description.add_action(scheduler_node)
 
-            print()
-            print(f"{{x: {turtle['x']}, y: {turtle['y']}, theta: {turtle['theta']}, name: '{turtle['turtlename']}'}}\"")
-            print()
+            # print()
+            # print(f"{{x: {turtle['x']}, y: {turtle['y']}, theta: {turtle['theta']}, name: '{turtle['turtlename']}'}}\"")
+            # print()
             spawn_turtle = ExecuteProcess(
                 cmd=[f"ros2 service call /{ns}/spawn_turtle turtlesim/srv/Spawn \"{{x: {turtle['x']}, y: {turtle['y']}, theta: {turtle['theta']}, name: '{turtle['turtlename']}'}}\""],
                 shell=True
