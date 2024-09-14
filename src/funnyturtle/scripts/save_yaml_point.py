@@ -12,7 +12,7 @@ class PointToYamlNode(Node):
         # Namespace
         self.namespace = 'sssss'  # Replace with your actual namespace
         # YAML file path
-        self.yaml_file_path = '/home/farao/FunnyTurtlePlus/src/funnyturtle/config/Pizzapath.yaml'  # Replace with the actual file path
+        self.yaml_file_path = 'src/funnyturtle/config/Pizzapath.yaml'  # Replace with the actual file path
         # Write the points to a YAML file
         self.create_yaml_file()
 
