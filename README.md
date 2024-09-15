@@ -12,50 +12,65 @@ FunnyTurtle Project, FRA501 Robotics DevOps project. This project is designed to
 
 ## Project Overview
 
-The Funnyturtle project is divided into three main components:
-1. Teleop Turtle
+The FunnyTurtlePlus project consists of three main components:
 
-    In Turtle Teleop, the turtlesim_plus interface appears, allowing you to control the turtle's position and direction using the keys (a, s, d, w, etc.). Press 'i' to toggle the ability to spawn pizzas, 'o' to save the most recently spawned pizza to a .yaml file, and 'p' to clear the turtle's path so it can move directly to any unsaved pizza.
+1. **Teleop Turtle**
 
-2. Copy Turtle Fleet
+   Control a turtle in the `turtlesim_plus` interface using your keyboard (W, A, S, D, etc.). Press:
 
-    In Copy Turtle Fleet, four turtles (Foxy, Noetic, Humble, and Iron) appear within the turtlesim_plus interface. This process begins automatically once the fourth teleop turtle completes saving. The Copy Turtle Fleet collects target points from the teleop pizza target .yaml file and uses these to spawn pizzas. Once all tasks are completed, the turtles move to the lower-left corner of the interface and wait for the next task.
+   - `i` to toggle pizza spawning.
+   - `o` to save the most recently spawned pizza to a `.yaml` file.
+   - `p` to clear the turtle's path, allowing it to move directly to any unsaved pizza.
 
-3.  (Optional) Bonus features 
+2. **Copy Turtle Fleet**
 
-    After the Turtle teleop and the copy turtle fleet have been completed, all copy turtles will position themselves in the right corner. Then, spawn a turtle named "Melodic". Melodic will proceed to consume any pizzas and also eat all the copy turtles. Once there are no turtles left on the copy turtle interface, Melodic will switch to the teleop turtle interface. There, Melodic will try to eat all the pizzas and finally consume the teleop turtle. After that, the entire program will reset to its initial state.
+   After you've saved pizzas using the Teleop Turtle, four new turtles named Foxy, Noetic, Humble, and Iron will appear. They automatically read the saved pizza positions from the `.yaml` file and spawn pizzas at those locations. Once they've completed their tasks, they move to the lower-left corner and wait.
 
+3. **Bonus Features (Optional)**
+
+   Once the Copy Turtle Fleet is done, all turtles position themselves in the right corner. A new turtle named "Melodic" spawns and begins to "eat" all the pizzas and the Copy Turtles. After consuming everything in the Copy Turtle interface, Melodic moves to the Teleop Turtle interface to eat all pizzas and the Teleop Turtle itself. The program then resets to its initial state.
 
 
 ## System Archtecture
-![alt text](<เต่าหัวกล้วย (1).png>)
-### Node
-- teleop_key_node :  This node receives keyboard input, processes the key press, and publishes the result to the teleop_scheduler_node, which then determines the specific task associated with the key pressed.
+![alt text](<เต่าหัวกล้วย (2).png>)
 
-- teleop_scheduler_node : Subscribes to the input key from the teleop_key_node and sends commands to define the turtle's state and actions, such as spawning pizza, clearing pizza, saving pizza positions, etc. Additionally, it manages pizza positions, either sending them to the controller_node when an unsaved pizza needs to be cleared or removed, or saving the pizza path positions to a .yaml file.
+### Nodes
 
-- controller_node : This node uses a PID controller to minimize the distance between the turtle and the target position. Once the turtle is sufficiently close to the target, it notifies the teleop_scheduler_node that the task is complete and it is ready for the next task.
+- **teleop_key_node**: Captures keyboard input and publishes key presses to the scheduler.
 
-- turtlesim_plus_node : Displays all components and interactions within the turtlesim_plus interface. Additionally, it sends the turtle's position and orientation to the controller_node and teleop_scheduler_node to be used for computations and task management.
+- **teleop_scheduler_node**: Manages turtle actions like spawning pizzas, clearing paths, and saving pizza positions. Communicates with the controller for movement tasks.
 
-- copy_scheduler_node : This node functions similarly to the teleop_key_node in terms of defining the state of tasks, such as controlling turtles and spawning pizzas. However, it introduces an additional feature: the ability to load target positions for each turtle from a .yaml file. Each turtle will perform the same task but navigate to its respective target position separately.
+- **controller_node**: Uses a PID controller to move the turtle towards target positions. Notifies the scheduler upon task completion.
 
+- **turtlesim_plus_node**: Visualizes all turtles and pizzas. Sends position and orientation data to other nodes.
 
+- **copy_scheduler_node**: Similar to the teleop scheduler but for the Copy Turtle Fleet. Loads target positions from the `.yaml` file.
 
-### Topic
-- /cmd_vel : For command linear and angular velocity
-- /target : Collect target position [x,y,z]
-- /key : Collect button press from keyboard
-- /pose : Position and Orientation of turtle
+- **copy_main_scheduler_node**: Coordinates the Copy Turtle Fleet, ensuring they complete tasks together and move to designated positions.
 
-### Service
-- /eat : For remove entity that are in area of scanner
-- /spawn_pizza : For spawn pizza at specific position
-- /notify : To acknowledge task done
+### Topics
 
-### Parameter (Able to change with rqt interface)
-- Controller Gain (Kp, Ki, Kd) :  Linear and angular controller gain
-- Pizza_max : Maximum number of pizza that can spawn  
+- `/cmd_vel`: Sends movement commands to turtles.
+
+- `/target`: Publishes target positions `[x, y, z]`.
+
+- `/key`: Receives keyboard inputs.
+
+- `/pose`: Provides the turtle's current position and orientation.
+
+### Services
+
+- `/eat`: Removes entities within a certain area.
+
+- `/spawn_pizza`: Spawns a pizza at a specified location.
+
+- `/notify`: Acknowledges task completion.
+
+### Parameters (Adjustable via `rqt`)
+
+- **Controller Gains (Kp, Ki, Kd)**: Adjusts the PID controller's responsiveness.
+
+- **Pizza_max**: Sets the maximum number of pizzas that can be spawned.
 
 ## Installation and Setup
 
@@ -86,19 +101,23 @@ echo "source ~/FunnyTurtlePlus/install/setup.bash" >> ~/.bashrc && source ~/.bas
 - ### Run seperately node
 
 ```bash
-ros2 run funnyturtle {Node_name}
+    ros2 run funnyturtle {Node_name}
 ```
 
 - ### Launch teleop turtle only
 ```bash
-ros2 launch funnyturtle teleop.launch.py
+    ros2 launch funnyturtle teleop.launch.py
 ```
 
 - ### Launch teleop and copy tutles together
 ```bash
-ros2 launch funnyturtle funnyturtle.launch.py
+    ros2 launch funnyturtle funnyturtle.launch.py
 ```
 
+- ### Launch Extra Melodic turtle (After copy turtle was done!)
+```bash
+    ros2 launch funnyturtle melodic.launch.py
+```
 
 ## Testing and Result
 
