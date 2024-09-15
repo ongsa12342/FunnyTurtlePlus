@@ -13,6 +13,7 @@ from funnyturtleplus_interfaces.srv import Notify
 import numpy as np
 from std_msgs.msg import Float64MultiArray
 import time 
+import subprocess
 class copy_main_scheduler_node(Node):
     
     def __init__(self):
@@ -78,7 +79,6 @@ class copy_main_scheduler_node(Node):
         return response
     
 def main(args=None):
-    # time.sleep(5)
     rclpy.init(args=args)
     node = copy_main_scheduler_node()
     rclpy.spin(node)

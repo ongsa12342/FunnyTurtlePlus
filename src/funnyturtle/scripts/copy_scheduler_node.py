@@ -157,10 +157,10 @@ class copy_scheduler_node(Node):
             with open(self.yaml_file_path, 'r') as file:
                 yaml_data = yaml.safe_load(file)
 
-            # if yaml_data is None:
-            #     # Log a warning if the file is empty or invalid
-            #     self.get_logger().warning("YAML file is empty or invalid.")
-            #     return []
+            if yaml_data is None:
+                # Log a warning if the file is empty or invalid
+                self.get_logger().warning("YAML file is empty or invalid.")
+                return []
             loaded_paths = []  # To collect all loaded paths
 
             if 'PizzaPaths' in yaml_data:
@@ -218,7 +218,7 @@ class copy_scheduler_node(Node):
 
 
 def main(args=None):
-    time.sleep(5)
+    time.sleep(10)
     rclpy.init(args=args)
     node = copy_scheduler_node()
     rclpy.spin(node)

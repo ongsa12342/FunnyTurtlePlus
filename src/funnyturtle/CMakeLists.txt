@@ -33,6 +33,7 @@ install(PROGRAMS
   scripts/teleop_scheduler_node.py
   scripts/copy_scheduler_node.py
   scripts/copy_main_scheduler_node.py
+  scripts/melodic.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

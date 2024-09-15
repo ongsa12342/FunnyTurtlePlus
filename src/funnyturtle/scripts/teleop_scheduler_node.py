@@ -18,7 +18,7 @@ from turtlesim_plus_interfaces.srv import GivePosition
 from funnyturtleplus_interfaces.srv import Notify
 
 from rcl_interfaces.msg import SetParametersResult
-
+import time
 class TeleopSchedulerNode(Node):
     def __init__(self):
         super().__init__('teleop_scheduler_node')
@@ -37,22 +37,16 @@ class TeleopSchedulerNode(Node):
         self.pizza_count = 0
 
         # File paths
-        self.yaml_file_path = 'src/funnyturtle/config/temp.yaml'
-        self.yaml_finish_file_path = 'src/funnyturtle/config/Pizzapath.yaml'
+        self.yaml_file_path = 'src/funnyturtle/config/Pizzapath.yaml'
         
-        # Remove existing YAML file if it exists
+         # Remove existing YAML file if it exists
         if os.path.exists(self.yaml_file_path):
             os.remove(self.yaml_file_path)
             print(f"File {self.yaml_file_path} has been removed.")
         else:
             print(f"File {self.yaml_file_path} does not exist.")
-            
-        if os.path.exists(self.yaml_finish_file_path):
-            os.remove(self.yaml_finish_file_path)
-            print(f"File {self.yaml_finish_file_path} has been removed.")
-        else:
-            print(f"File {self.yaml_finish_file_path} does not exist.")
 
+        time.sleep(1)
         # State machine states
         self.state = 'Idle'  # Possible states: 'Idle', 'Save', 'Clear', 'Spawn'
         self.current_key = ''
@@ -142,9 +136,8 @@ class TeleopSchedulerNode(Node):
                 self.get_logger().info(f"Save Count: {self.save_count}")
                 self.pizza_count = 0
                 # Return to Idle after completing the Save action
+                time.sleep(0.5)
                 self.state = 'Idle'
-                if self.save_count == 4:
-                    os.rename(self.yaml_file_path, self.yaml_finish_file_path)
             else:
                 self.get_logger().info("Reached maximum save count. No more saves.")
                 self.state = 'Idle'
