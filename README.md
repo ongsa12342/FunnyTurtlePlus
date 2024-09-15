@@ -1,5 +1,4 @@
 # FunnyTurtlePlus
-
 ## Introduction 
 FunnyTurtle Project, FRA501 Robotics DevOps project. This project is designed to deepen your understanding of the basics of ROS2 (Robot Operating System 2) by offering practical experience in implementing key concepts such as Topics, Services, Parameters, Namespaces, and Launch Files within a complex robotic system. 
 
@@ -122,3 +121,8 @@ echo "source ~/FunnyTurtlePlus/install/setup.bash" >> ~/.bashrc && source ~/.bas
 ## Testing and Result
 
 ### Create "FIBO" by teleop turtle and automatic generate by a fleet of copy turtle
+[![FunnyTurtlePlus Demo](<Screenshot from 2024-09-15 08-14-15.png>)](https://youtu.be/Kh8mGpidVNE)
+
+### Extra Melodic turtle
+[![FunnyTurtlePlus Demo](<Screenshot from 2024-09-15 08-17-30.png>)](https://youtu.be/hcOs1CRAHTI)
+
