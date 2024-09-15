@@ -28,24 +28,19 @@ The Funnyturtle project is divided into three main components:
 
 
 ## System Archtecture
-<!-- ![alt text](<Screenshot from 2024-09-15 02-44-41.png>)
-![alt text](<Screenshot from 2024-09-15 02-43-10.png>) -->
+![alt text](<เต่าหัวกล้วย (1).png>)
 ### Node
-- Teleop turtle node
-    - teleop_key_node :  This node receives keyboard input, processes the key press, and publishes the result to the teleop_scheduler_node, which then determines the specific task associated with the key pressed.
+- teleop_key_node :  This node receives keyboard input, processes the key press, and publishes the result to the teleop_scheduler_node, which then determines the specific task associated with the key pressed.
 
-    - teleop_scheduler_node : Subscribes to the input key from the teleop_key_node and sends commands to define the turtle's state and actions, such as spawning pizza, clearing pizza, saving pizza positions, etc. Additionally, it manages pizza positions, either sending them to the controller_node when an unsaved pizza needs to be cleared or removed, or saving the pizza path positions to a .yaml file.
+- teleop_scheduler_node : Subscribes to the input key from the teleop_key_node and sends commands to define the turtle's state and actions, such as spawning pizza, clearing pizza, saving pizza positions, etc. Additionally, it manages pizza positions, either sending them to the controller_node when an unsaved pizza needs to be cleared or removed, or saving the pizza path positions to a .yaml file.
 
-    - controller_node : This node uses a PID controller to minimize the distance between the turtle and the target position. Once the turtle is sufficiently close to the target, it notifies the teleop_scheduler_node that the task is complete and it is ready for the next task.
+- controller_node : This node uses a PID controller to minimize the distance between the turtle and the target position. Once the turtle is sufficiently close to the target, it notifies the teleop_scheduler_node that the task is complete and it is ready for the next task.
 
-    - turtlesim_plus_node : Displays all components and interactions within the turtlesim_plus interface. Additionally, it sends the turtle's position and orientation to the controller_node and teleop_scheduler_node to be used for computations and task management.
+- turtlesim_plus_node : Displays all components and interactions within the turtlesim_plus interface. Additionally, it sends the turtle's position and orientation to the controller_node and teleop_scheduler_node to be used for computations and task management.
 
-- Copy turtle node
-    - copy_scheduler_node : 
+- copy_scheduler_node : This node functions similarly to the teleop_key_node in terms of defining the state of tasks, such as controlling turtles and spawning pizzas. However, it introduces an additional feature: the ability to load target positions for each turtle from a .yaml file. Each turtle will perform the same task but navigate to its respective target position separately.
 
-    - controller_node : This node uses a PID controller to minimize the distance between each turtle and the their target position. Once the turtle is sufficiently close to the target, it notifies the teleop_scheduler_node that the task is complete and it is ready for the next task.
 
-    - turtlesim_plus_node
 
 ### Topic
 - /cmd_vel : For command linear and angular velocity
@@ -88,18 +83,18 @@ echo "source ~/FunnyTurtlePlus/install/setup.bash" >> ~/.bashrc && source ~/.bas
 ```
 
 ## Usage
-### Run seperately node
+- ### Run seperately node
 
 ```bash
 ros2 run funnyturtle {Node_name}
 ```
 
-### Launch teleop turtle only
+- ### Launch teleop turtle only
 ```bash
 ros2 launch funnyturtle teleop.launch.py
 ```
 
-### Launch teleop and copy tutles together
+- ### Launch teleop and copy tutles together
 ```bash
 ros2 launch funnyturtle funnyturtle.launch.py
 ```
